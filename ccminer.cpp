@@ -219,6 +219,7 @@ Options:\n\
 			vcash       Blake256-8rounds (XVC)\n\
 			blake2s	    Blake2s          (NEVA/XVG)\n\
 			keccak	    keccak256        (Maxcoin)\n\
+			keccakc     Keccak-256 + sha256d merkle root (Creativecoin)\n\
 			lyra2                        (LyraBar)\n\
 			lyra2v2                      (VertCoin)\n\
 			skein       Skein SHA2       (AUR/DGB/SKC)\n\
@@ -1471,6 +1472,9 @@ static bool stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 		case ALGO_NEOSCRYPT:
 			work_set_target(work, sctx->job.diff / (65536.0 * opt_difficulty));
 			break;
+		case ALGO_KECCAKC:
+			work_set_target(work, sctx->job.diff / (256.0 * opt_difficulty));
+			break;
 		case ALGO_KECCAK:
 		case ALGO_LBRY:
 		case ALGO_LYRA2v2:
@@ -1974,6 +1978,9 @@ static void *miner_thread(void *userdata)
 		/* scan nonces for a proof-of-work hash */
 		switch (opt_algo) {
 			case ALGO_KECCAK:
+				rc = scanhash_keccak256(thr_id, &work, max_nonce, &hashes_done);
+				break;
+			case ALGO_KECCAKC:
 				rc = scanhash_keccak256(thr_id, &work, max_nonce, &hashes_done);
 				break;
 			case ALGO_BLAKE:
@@ -3375,7 +3382,8 @@ int main(int argc, char *argv[])
 		CUDART_VERSION/1000, (CUDART_VERSION % 1000)/10, comment_toolkit);
 	printf("*** Based on tpruvot@github ccminer\n");
 	printf("*** Originally based on Christian Buchner and Christian H. project\n");
-	printf("*** Include some of the work of djm34, sp, tsiv and klausT.\n\n");
+	printf("*** Include some of the work of djm34, sp, tsiv and klausT.\n");
+	printf("*** keccakc Algo added by cornz.\n\n");
 
 	rpc_user = strdup("");
 	rpc_pass = strdup("");
