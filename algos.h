@@ -12,7 +12,7 @@ enum sha_algos {
 	ALGO_BLAKE2S,
 //	ALGO_WHIRLPOOLX,
 	ALGO_KECCAK,
-	ALGO_KECCAKC,
+	ALGO_HSR,
 	ALGO_LYRA2,
 	ALGO_LYRA2v2,
 	ALGO_SKEIN,
@@ -49,7 +49,7 @@ static const char *algo_names[] = {
 	"blake2s",
 //	"whirlpoolx",
 	"keccak",
-	"keccakc",
+	"hsr",
 	"lyra2",
 	"lyra2v2",
 	"skein",
@@ -93,6 +93,8 @@ static inline int algo_to_int(char* arg)
 			i = ALGO_AUTO;
 		else if (!strcasecmp("flax", arg))
 			i = ALGO_C11;
+		else if (!strcasecmp("x13sm3", arg))
+			i = ALGO_HSR;
 		else if (!strcasecmp("lyra2re", arg))
 			i = ALGO_LYRA2;
 		else if (!strcasecmp("lyra2rev2", arg))
