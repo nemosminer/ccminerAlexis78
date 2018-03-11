@@ -218,8 +218,8 @@ Options:\n\
   			blakecoin   Blake256-8rounds (BLC)\n\
 			vcash       Blake256-8rounds (XVC)\n\
 			blake2s	    Blake2s          (NEVA/XVG)\n\
-			keccak      keccak256        (Maxcoin)\n\
-			hsr         X13+SM3          (Hshare)\n\
+			keccak	    keccak256        (Maxcoin)\n\
+			keccakc     Keccak-256 + sha256d merkle root (Creativecoin)\n\
 			lyra2                        (LyraBar)\n\
 			lyra2v2                      (VertCoin)\n\
 			skein       Skein SHA2       (AUR/DGB/SKC)\n\
@@ -376,7 +376,6 @@ struct option options[] = {
 	{ "syslog", 0, NULL, 'S' },
 	{ "syslog-prefix", 1, NULL, 1018 },
 #endif
-	{ "shares-limit", 1, NULL, 1009 },
 	{ "time-limit", 1, NULL, 1008 },
 	{ "threads", 1, NULL, 't' },
 	{ "vote", 1, NULL, 1022 },
@@ -1473,6 +1472,9 @@ static bool stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 		case ALGO_NEOSCRYPT:
 			work_set_target(work, sctx->job.diff / (65536.0 * opt_difficulty));
 			break;
+		case ALGO_KECCAKC:
+			work_set_target(work, sctx->job.diff / (256.0 * opt_difficulty));
+			break;
 		case ALGO_KECCAK:
 		case ALGO_LBRY:
 		case ALGO_LYRA2v2:
@@ -1872,36 +1874,6 @@ static void *miner_thread(void *userdata)
 			if (remain < max64) max64 = remain;
 		}
 
-		/* shares limit */
-		if (opt_shares_limit > 0 && firstwork_time) {
-			int64_t shares = (pools[cur_pooln].accepted_count + pools[cur_pooln].rejected_count);
-			if (shares >= opt_shares_limit) {
-				int passed = (int)(time(NULL) - firstwork_time);
-				if (thr_id != 0) {
-					sleep(1); continue;
-				}
-				if (num_pools > 1 && pools[cur_pooln].shares_limit > 0) {
-					if (!pool_is_switching) {
-						if (!opt_quiet)
-							applog(LOG_INFO, "Pool shares limit of %d reached, rotate...", opt_shares_limit);
-						pool_switch_next(thr_id);
-					} else if (passed > 35) {
-						// ensure we dont stay locked if pool_is_switching is not reset...
-						applog(LOG_WARNING, "Pool switch to %d timed out...", cur_pooln);
-						if (!thr_id) pools[cur_pooln].wait_time += 1;
-						pool_is_switching = false;
-					}
-					sleep(1);
-					continue;
-				}
-				abort_flag = true;
-				app_exit_code = EXIT_CODE_OK;
-				applog(LOG_NOTICE, "Mining limit of %d shares reached, exiting...", opt_shares_limit);
-				workio_abort();
-				break;
-			}
-		}
-
 		max64 *= (uint32_t)thr_hashrates[thr_id];
 
 		/* on start, max64 should not be 0,
@@ -1934,7 +1906,6 @@ static void *miner_thread(void *userdata)
 					minmax = 0x80000;
 					break;
 				case ALGO_C11:
-				case ALGO_HSR:
 				case ALGO_X11:
 				case ALGO_X11EVO:
 				case ALGO_X13:
@@ -2009,6 +1980,9 @@ static void *miner_thread(void *userdata)
 			case ALGO_KECCAK:
 				rc = scanhash_keccak256(thr_id, &work, max_nonce, &hashes_done);
 				break;
+			case ALGO_KECCAKC:
+				rc = scanhash_keccak256(thr_id, &work, max_nonce, &hashes_done);
+				break;
 			case ALGO_BLAKE:
 				rc = scanhash_blake256_14round(thr_id, &work, max_nonce, &hashes_done);
 				break;
@@ -2059,9 +2033,6 @@ static void *miner_thread(void *userdata)
 				break;
 			case ALGO_C11:
 				rc = scanhash_c11(thr_id, &work, max_nonce, &hashes_done);
-				break;
-			case ALGO_HSR:
-				rc = scanhash_hsr(thr_id, &work, max_nonce, &hashes_done);
 				break;
 			case ALGO_SIB:
 				rc = scanhash_sib(thr_id, &work, max_nonce, &hashes_done);
@@ -2189,12 +2160,10 @@ static void *miner_thread(void *userdata)
 				gpulog(LOG_INFO, thr_id, "%s, %s", device_name[dev_id], s);
 				pthread_mutex_lock(&cgpu->monitor.lock);
 				if (cgpu->monitor.gpu_power != 0){
-					gpulog(LOG_INFO, thr_id, "%s, %1.2gMH/W, %1.2gMH/Mhz",
-					device_name[dev_id], (double)(thr_hashrates[thr_id] / 1.0e6) / (cgpu->monitor.gpu_power / 1000),
-						(double)(thr_hashrates[thr_id] / 1.0e6) / (cgpu->monitor.gpu_clock));
-					gpulog(LOG_INFO, thr_id, "%s, %uC(F:%u%%) %u/%uMHz(%uW)",
-						device_name[dev_id], cgpu->monitor.gpu_temp, cgpu->monitor.gpu_fan,cgpu->monitor.gpu_clock,
-						cgpu->monitor.gpu_memclock,(cgpu->monitor.gpu_power / 1000));
+					gpulog(LOG_INFO, thr_id, "%s, %1.2gMH/W, %1.2gMH/Mhz", device_name[dev_id], (double)(thr_hashrates[thr_id] / 1.0e6) / (cgpu->monitor.gpu_power / 1000),
+                                                                                               (double)(thr_hashrates[thr_id] / 1.0e6) / (cgpu->monitor.gpu_clock));
+					gpulog(LOG_INFO, thr_id, "%s, %uC(F:%u%%) %u/%uMHz(%uW)", device_name[dev_id], cgpu->monitor.gpu_temp, cgpu->monitor.gpu_fan,cgpu->monitor.gpu_clock,
+					                                                             cgpu->monitor.gpu_memclock,(cgpu->monitor.gpu_power / 1000));
 				}
 				pthread_mutex_unlock(&cgpu->monitor.lock);
 			}else
@@ -3113,9 +3082,6 @@ void parse_arg(int key, char *arg)
 	case 1008:
 		opt_time_limit = atoi(arg);
 		break;
-	case 1009:
-		opt_shares_limit = atoi(arg);
-		break;
 	case 1011:
 		allow_gbt = false;
 		break;
@@ -3190,7 +3156,7 @@ void parse_arg(int key, char *arg)
 			char * pch = strtok (arg,",");
 			opt_n_threads = 0;
 			while (pch != NULL && opt_n_threads < MAX_GPUS) {
-				if (pch[0] >= '0' && pch[0] <= '9')
+				if (pch[0] >= '0' && pch[0] <= '9' && pch[1] == '\0')
 				{
 					if (atoi(pch) < ngpus)
 						device_map[opt_n_threads++] = atoi(pch);
@@ -3349,25 +3315,6 @@ static void parse_cmdline(int argc, char *argv[]){
 	}	
 }
 
-static void parse_single_opt(int opt, int argc, char *argv[])
-{
-	int key, prev = optind;
-	while (1) {
-#if HAVE_GETOPT_LONG
-		key = getopt_long(argc, argv, short_options, options, NULL);
-#else
-		key = getopt(argc, argv, short_options);
-#endif
-		if (key < 0)
-			break;
-		if (key == opt /* || key == 'c'*/)
-			parse_arg(key, optarg);
-	}
-	//todo with a filter: parse_config(opt_config);
-
-	optind = prev; // reset argv index
-}
-
 #ifndef WIN32
 static void signal_handler(int sig)
 {
@@ -3419,9 +3366,7 @@ int main(int argc, char *argv[])
 	long flags;
 	int i;
 
-	// get opt_quiet early
-	parse_single_opt('q', argc, argv);
-
+	
 	char comment_toolkit[30];
 	if(((int)(CUDART_VERSION/1000)==7) && ((int)((CUDART_VERSION % 1000)/10)==5))
 		strcpy(comment_toolkit, "Recommended");
@@ -3429,17 +3374,16 @@ int main(int argc, char *argv[])
 		strcpy(comment_toolkit, "Not recommended prefer 7.5");
 		
 	printf("*** " PROGRAM_NAME " " PACKAGE_VERSION " for nVidia GPUs from alexis78@github ***\n");
-	if (!opt_quiet) {
 #ifdef _MSC_VER
-		printf("*** Built with VC++ 2013 and nVidia CUDA SDK %d.%d (%s)\n\n",
+	printf("*** Built with VC++ 2013 and nVidia CUDA SDK %d.%d (%s)\n\n",
 #else
-		printf("*** Built with the nVidia CUDA Toolkit %d.%d (%s)\n\n",
+	printf("*** Built with the nVidia CUDA Toolkit %d.%d (%s)\n\n",
 #endif
-			CUDART_VERSION/1000, (CUDART_VERSION % 1000)/10, comment_toolkit);
-		printf("*** Based on tpruvot@github ccminer\n");
-		printf("*** Originally based on Christian Buchner and Christian H. project\n");
-		printf("*** Include some of the work of djm34, sp, tsiv and klausT.\n\n");
-	}
+		CUDART_VERSION/1000, (CUDART_VERSION % 1000)/10, comment_toolkit);
+	printf("*** Based on tpruvot@github ccminer\n");
+	printf("*** Originally based on Christian Buchner and Christian H. project\n");
+	printf("*** Include some of the work of djm34, sp, tsiv and klausT.\n");
+	printf("*** keccakc Algo added by cornz.\n\n");
 
 	rpc_user = strdup("");
 	rpc_pass = strdup("");
@@ -3682,8 +3626,7 @@ int main(int argc, char *argv[])
 	if (hnvml) {
 		bool gpu_reinit = (opt_cudaschedule >= 0); //false
 		cuda_devicenames(); // refresh gpu vendor name
-		if (!opt_quiet)
-			applog(LOG_INFO, "NVML GPU monitoring enabled.");
+		applog(LOG_INFO, "NVML GPU monitoring enabled.");
 		for (int n=0; n < active_gpus; n++) {
 			if (nvml_set_pstate(device_map[n]) == 1)
 				gpu_reinit = true;
@@ -3705,14 +3648,12 @@ int main(int argc, char *argv[])
 	}
 #ifdef WIN32
 	if (!hnvml && nvapi_init() == 0) {
-		if (!opt_quiet)
-			applog(LOG_INFO, "NVAPI GPU monitoring enabled.");
+		applog(LOG_INFO, "NVAPI GPU monitoring enabled.");
 		cuda_devicenames(); // refresh gpu vendor name
 	}
 #endif
 	else if (!hnvml)
-		if (!opt_quiet)
-			applog(LOG_INFO, "GPU monitoring is not available.");
+		applog(LOG_INFO, "GPU monitoring is not available.");
 #endif
 
 	if (opt_api_listen) {
