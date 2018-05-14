@@ -230,7 +230,7 @@ Options:\n\
 			qubit       Qubit\n\
 			x11         X11              (DarkCoin)\n\
 			c11         C11              (Chaincoin)\n\
-			sib         X11+gost         (Sibcoin)\n\
+			poly        Veltor+stuff     (Polytimos)\n\
 			x11evo      Permuted x11     (Revolver)\n\
 			x13         X13              (MaruCoin)\n\
 			x14         X14              (BernCoin)\n\
@@ -1932,7 +1932,7 @@ static void *miner_thread(void *userdata)
 					minmax = 0x8000000;
 					break;
 				case ALGO_NEOSCRYPT:
-				case ALGO_SIB:
+				case ALGO_POLY:
 				case ALGO_VELTOR:
 				case ALGO_LYRA2:
 					minmax = 0x80000;
@@ -2070,8 +2070,8 @@ static void *miner_thread(void *userdata)
 			case ALGO_HSR:
 				rc = scanhash_hsr(thr_id, &work, max_nonce, &hashes_done);
 				break;
-			case ALGO_SIB:
-				rc = scanhash_sib(thr_id, &work, max_nonce, &hashes_done);
+			case ALGO_POLY:
+				rc = scanhash_poly(thr_id, &work, max_nonce, &hashes_done);
 				break;
 			case ALGO_VELTOR:
 				rc = scanhash_veltor(thr_id, &work, max_nonce, &hashes_done);
