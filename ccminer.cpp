@@ -219,6 +219,7 @@ Options:\n\
 			vcash       Blake256-8rounds (XVC)\n\
 			blake2s	    Blake2s          (NEVA/XVG)\n\
 			keccak      keccak256        (Maxcoin)\n\
+			keccakc     Keccak-256 + sha256d merkle root (Creativecoin)\n\
 			hsr         X13+SM3          (Hshare)\n\
 			lyra2                        (LyraBar)\n\
 			lyra2v2                      (VertCoin)\n\
@@ -1473,6 +1474,9 @@ static bool stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 		case ALGO_NEOSCRYPT:
 			work_set_target(work, sctx->job.diff / (65536.0 * opt_difficulty));
 			break;
+			case ALGO_KECCAKC:
+			work_set_target(work, sctx->job.diff / (256.0 * opt_difficulty));
+			break;
 		case ALGO_KECCAK:
 		case ALGO_LBRY:
 		case ALGO_LYRA2v2:
@@ -2007,6 +2011,9 @@ static void *miner_thread(void *userdata)
 		/* scan nonces for a proof-of-work hash */
 		switch (opt_algo) {
 			case ALGO_KECCAK:
+				rc = scanhash_keccak256(thr_id, &work, max_nonce, &hashes_done);
+				break;
+				case ALGO_KECCAKC:
 				rc = scanhash_keccak256(thr_id, &work, max_nonce, &hashes_done);
 				break;
 			case ALGO_BLAKE:
@@ -3190,7 +3197,7 @@ void parse_arg(int key, char *arg)
 			char * pch = strtok (arg,",");
 			opt_n_threads = 0;
 			while (pch != NULL && opt_n_threads < MAX_GPUS) {
-				if (pch[0] >= '0' && pch[0] <= '9')
+				if (pch[0] >= '0' && pch[0] <= '9' && pch[1] == '\0')
 				{
 					if (atoi(pch) < ngpus)
 						device_map[opt_n_threads++] = atoi(pch);
@@ -3429,6 +3436,7 @@ int main(int argc, char *argv[])
 		strcpy(comment_toolkit, "Not recommended prefer 7.5");
 		
 	printf("*** " PROGRAM_NAME " " PACKAGE_VERSION " for nVidia GPUs from alexis78@github ***\n");
+	printf("*** " PROGRAM_NAME " " PACKAGE_VERSION " compiled by nemosminer@github ***\n");
 	if (!opt_quiet) {
 #ifdef _MSC_VER
 		printf("*** Built with VC++ 2013 and nVidia CUDA SDK %d.%d (%s)\n\n",
@@ -3438,7 +3446,8 @@ int main(int argc, char *argv[])
 			CUDART_VERSION/1000, (CUDART_VERSION % 1000)/10, comment_toolkit);
 		printf("*** Based on tpruvot@github ccminer\n");
 		printf("*** Originally based on Christian Buchner and Christian H. project\n");
-		printf("*** Include some of the work of djm34, sp, tsiv and klausT.\n\n");
+		printf("*** Include some of the work of djm34, sp, tsiv and klausT.\n");
+		printf("			Alexis78-v1.1 \n\n");
 	}
 
 	rpc_user = strdup("");
