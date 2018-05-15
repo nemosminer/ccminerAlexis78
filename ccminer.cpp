@@ -3445,7 +3445,7 @@ int main(int argc, char *argv[])
 			CUDART_VERSION/1000, (CUDART_VERSION % 1000)/10, comment_toolkit);
 		printf("*** Based on tpruvot@github ccminer\n");
 		printf("*** Originally based on Christian Buchner and Christian H. project\n");
-		printf("*** Include some of the work of djm34, sp, tsiv and klausT.\n");
+		printf("*** Include some work of anorganix, djm34, sp, tsiv and klausT.\n");
 		printf("			Alexis78-v1.2 \n\n");
 	}
 
