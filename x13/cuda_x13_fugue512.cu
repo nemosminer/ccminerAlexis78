@@ -1,36 +1,37 @@
 
 #include <cuda_helper.h>
 
-#define TPB 256
+//#define TPB 256
+#define TPB 384
 
 /*
- * fugue512 x13 kernel implementation.
- *
- * ==========================(LICENSE BEGIN)============================
- *
- * Copyright (c) 2014-2017 phm, tpruvot
- *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice shall be
- * included in all copies or substantial portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
- * CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
- * ===========================(LICENSE END)=============================
- */
+* fugue512 x13 kernel implementation.
+*
+* ==========================(LICENSE BEGIN)============================
+*
+* Copyright (c) 2014-2017 phm, tpruvot
+*
+* Permission is hereby granted, free of charge, to any person obtaining
+* a copy of this software and associated documentation files (the
+* "Software"), to deal in the Software without restriction, including
+* without limitation the rights to use, copy, modify, merge, publish,
+* distribute, sublicense, and/or sell copies of the Software, and to
+* permit persons to whom the Software is furnished to do so, subject to
+* the following conditions:
+*
+* The above copyright notice and this permission notice shall be
+* included in all copies or substantial portions of the Software.
+*
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+* EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+* MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+* IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+* CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
+* TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
+* SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+*
+* ===========================(LICENSE END)=============================
+*/
 
 #ifdef __INTELLISENSE__
 #define __byte_perm(x, y, m) (x|y)
@@ -100,7 +101,7 @@ static const uint32_t mixtab0[] = {
 	x18 ^= x04; \
 	x19 ^= x05; \
 	x20 ^= x06; \
-}
+	}
 
 #define SMIX(x0, x1, x2, x3) { \
 	uint32_t tmp; \
@@ -159,7 +160,7 @@ static const uint32_t mixtab0[] = {
 		| ((c0 ^ (r2 >> 16)) & 0x0000FF00) | ((c1 ^ (r3 >> 16)) & 0x000000FF); \
 	x3 = ((c3 ^ (r0 << 24)) & 0xFF000000) | ((c0 ^ (r1 >>  8)) & 0x00FF0000) \
 		| ((c1 ^ (r2 >>  8)) & 0x0000FF00) | ((c2 ^ (r3 >>  8)) & 0x000000FF); \
-}
+	}
 
 #define SUB_ROR3 { \
 	B33 = S33, B34 = S34, B35 = S35; \
@@ -167,7 +168,7 @@ static const uint32_t mixtab0[] = {
 	S26 = S23; S25 = S22; S24 = S21; S23 = S20; S22 = S19; S21 = S18; S20 = S17; S19 = S16; S18 = S15; \
 	S17 = S14; S16 = S13; S15 = S12; S14 = S11; S13 = S10; S12 = S09; S11 = S08; S10 = S07; S09 = S06; \
 	S08 = S05; S07 = S04; S06 = S03; S05 = S02; S04 = S01; S03 = S00; S02 = B35; S01 = B34; S00 = B33; \
-}
+	}
 
 #define SUB_ROR8 { \
 	B28 = S28, B29 = S29, B30 = S30, B31 = S31, B32 = S32, B33 = S33, B34 = S34, B35 = S35; \
@@ -175,7 +176,7 @@ static const uint32_t mixtab0[] = {
 	S26 = S18; S25 = S17; S24 = S16; S23 = S15; S22 = S14; S21 = S13; S20 = S12; S19 = S11; S18 = S10; \
 	S17 = S09; S16 = S08; S15 = S07; S14 = S06; S13 = S05; S12 = S04; S11 = S03; S10 = S02; S09 = S01; \
 	S08 = S00; S07 = B35; S06 = B34; S05 = B33; S04 = B32; S03 = B31; S02 = B30; S01 = B29; S00 = B28; \
-}
+	}
 
 #define SUB_ROR9 { \
 	B27 = S27, B28 = S28, B29 = S29, B30 = S30, B31 = S31, B32 = S32, B33 = S33, B34 = S34, B35 = S35; \
@@ -183,7 +184,7 @@ static const uint32_t mixtab0[] = {
 	S26 = S17; S25 = S16; S24 = S15; S23 = S14; S22 = S13; S21 = S12; S20 = S11; S19 = S10; S18 = S09; \
 	S17 = S08; S16 = S07; S15 = S06; S14 = S05; S13 = S04; S12 = S03; S11 = S02; S10 = S01; S09 = S00; \
 	S08 = B35; S07 = B34; S06 = B33; S05 = B32; S04 = B31; S03 = B30; S02 = B29; S01 = B28; S00 = B27; \
-}
+	}
 
 #define FUGUE512_3(x, y, z) { \
 	TIX4(x, S00, S01, S04, S07, S08, S22, S24, S27, S30); \
@@ -215,14 +216,15 @@ static const uint32_t mixtab0[] = {
 	SMIX(S03, S04, S05, S06); \
 	CMIX36(S00, S01, S02, S04, S05, S06, S18, S19, S20); \
 	SMIX(S00, S01, S02, S03); \
-}
+	}
 
 
 #define AS_UINT4(addr) *((uint4*)(addr))
 
 /***************************************************/
 __global__
-__launch_bounds__(TPB)
+//__launch_bounds__(TPB)
+__launch_bounds__(TPB, 2)
 void x13_fugue512_gpu_hash_64(uint32_t threads, uint64_t *g_hash)
 {
 	__shared__ uint32_t mixtabs[1024];
@@ -231,9 +233,9 @@ void x13_fugue512_gpu_hash_64(uint32_t threads, uint64_t *g_hash)
 	const uint32_t thr = threadIdx.x & 0xFF;
 	const uint32_t tmp = tex1Dfetch(mixTab0Tex, thr);
 	mixtabs[thr] = tmp;
-	mixtabs[thr+256] = ROR8(tmp);
-	mixtabs[thr+512] = ROL16(tmp);
-	mixtabs[thr+768] = ROL8(tmp);
+	mixtabs[thr + 256] = ROR8(tmp);
+	mixtabs[thr + 512] = ROL16(tmp);
+	mixtabs[thr + 768] = ROL8(tmp);
 #if TPB <= 256
 	if (blockDim.x < 256) {
 		const uint32_t thr = (threadIdx.x + 0x80) & 0xFF;
@@ -251,15 +253,15 @@ void x13_fugue512_gpu_hash_64(uint32_t threads, uint64_t *g_hash)
 	if (thread < threads)
 	{
 		const size_t hashPosition = thread;
-		uint64_t*pHash = &g_hash[hashPosition<<3];
+		uint64_t*pHash = &g_hash[hashPosition << 3];
 		uint32_t Hash[16];
 
-		#pragma unroll 4
-		for(int i = 0; i < 4; i++)
-			AS_UINT4(&Hash[i*4]) = AS_UINT4(&pHash[i*2]);
+#pragma unroll 4
+		for (int i = 0; i < 4; i++)
+			AS_UINT4(&Hash[i * 4]) = AS_UINT4(&pHash[i * 2]);
 
-		#pragma unroll 16
-		for(int i = 0; i < 16; i++)
+#pragma unroll 16
+		for (int i = 0; i < 16; i++)
 			Hash[i] = cuda_swab32(Hash[i]);
 
 		uint32_t S00, S01, S02, S03, S04, S05, S06, S07, S08, S09;
@@ -286,13 +288,13 @@ void x13_fugue512_gpu_hash_64(uint32_t threads, uint64_t *g_hash)
 		FUGUE512_3((Hash[0xC]), (Hash[0xD]), (Hash[0xE]));
 		FUGUE512_3((Hash[0xF]), 0u /*bchi*/, 512u /*bclo*/);
 
-		#pragma unroll 32
-		for (int i = 0; i < 32; i ++) {
+#pragma unroll 32
+		for (int i = 0; i < 32; i++) {
 			SUB_ROR3;
 			CMIX36(S00, S01, S02, S04, S05, S06, S18, S19, S20);
 			SMIX(S00, S01, S02, S03);
 		}
-		#pragma unroll 13
+#pragma unroll 13
 		for (int i = 0; i < 13; i++) {
 			S04 ^= S00;
 			S09 ^= S00;
@@ -341,9 +343,9 @@ void x13_fugue512_gpu_hash_64(uint32_t threads, uint64_t *g_hash)
 		Hash[14] = cuda_swab32(S29);
 		Hash[15] = cuda_swab32(S30);
 
-		#pragma unroll 4
-		for(int i = 0; i < 4; i++)
-			AS_UINT4(&pHash[i*2]) = AS_UINT4(&Hash[i*4]);
+#pragma unroll 4
+		for (int i = 0; i < 4; i++)
+			AS_UINT4(&pHash[i * 2]) = AS_UINT4(&Hash[i * 4]);
 	}
 }
 
@@ -363,7 +365,7 @@ void x13_fugue512_gpu_hash_64(uint32_t threads, uint64_t *g_hash)
 __host__
 void x13_fugue512_cpu_init(int thr_id, uint32_t threads)
 {
-	texDef(0, mixTab0Tex, mixTab0m, mixtab0, sizeof(uint32_t)*256);
+	texDef(0, mixTab0Tex, mixTab0m, mixtab0, sizeof(uint32_t) * 256);
 }
 
 __host__
@@ -373,13 +375,12 @@ void x13_fugue512_cpu_free(int thr_id)
 }
 
 __host__
-//void fugue512_cpu_hash_64(int thr_id, uint32_t threads, uint32_t *d_hash)
-void x13_fugue512_cpu_hash_64(int thr_id, uint32_t threads, uint32_t startNounce, uint32_t *d_nonceVector, uint32_t *d_hash)
+void x13_fugue512_cpu_hash_64(int thr_id, uint32_t threads, uint32_t *d_hash)
 {
 	const uint32_t threadsperblock = TPB;
 
-	dim3 grid((threads + threadsperblock-1)/threadsperblock);
+	dim3 grid((threads + threadsperblock - 1) / threadsperblock);
 	dim3 block(threadsperblock);
 
-	x13_fugue512_gpu_hash_64 <<<grid, block>>> (threads, (uint64_t*)d_hash);
+	x13_fugue512_gpu_hash_64 << <grid, block >> > (threads, (uint64_t*)d_hash);
 }
