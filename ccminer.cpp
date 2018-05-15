@@ -219,7 +219,6 @@ Options:\n\
 			vcash       Blake256-8rounds (XVC)\n\
 			blake2s	    Blake2s          (NEVA/XVG)\n\
 			keccak      keccak256        (Maxcoin)\n\
-			keccakc     Keccak-256 + sha256d merkle root (Creativecoin)\n\
 			hsr         X13+SM3          (Hshare)\n\
 			lyra2                        (LyraBar)\n\
 			lyra2v2                      (VertCoin)\n\
@@ -230,7 +229,8 @@ Options:\n\
 			qubit       Qubit\n\
 			x11         X11              (DarkCoin)\n\
 			c11         C11              (Chaincoin)\n\
-			poly        Veltor+stuff     (Polytimos)\n\
+			sib         X11+gost         (Sibcoin)\n\
+			phi         PHI1612          (LuxCoin)\n\
 			x11evo      Permuted x11     (Revolver)\n\
 			x13         X13              (MaruCoin)\n\
 			x14         X14              (BernCoin)\n\
@@ -685,9 +685,9 @@ static bool work_decode(const json_t *val, struct work *work)
 	return true;
 }
 
-#define YES "yes!"
-#define YAY "yay!!!"
-#define BOO "booooo"
+#define YES "[YES]"
+#define YAY "[YAY]"
+#define BOO "[BOO]"
 
 int share_result(int result, int pooln, double sharediff, const char *reason)
 {
@@ -715,20 +715,20 @@ int share_result(int result, int pooln, double sharediff, const char *reason)
 
 	if (!net_diff || sharediff < net_diff) {
 		flag = use_colors ?
-			(result ? CL_GRN YES : CL_RED BOO)
-		:	(result ? "(" YES ")" : "(" BOO ")");
+			(result ? CL_GRN YES CL_N : CL_RED BOO CL_N)
+		:	(result ? YES : BOO);
 	} else {
 		p->solved_count++;
 		flag = use_colors ?
-			(result ? CL_GRN YAY : CL_RED BOO)
-		:	(result ? "(" YAY ")" : "(" BOO ")");
+			(result ? CL_YLW YAY CL_N : CL_RED BOO CL_N)
+		:	(result ? YAY : BOO);
 	}
 
-	applog(LOG_NOTICE, "[S/A/T]: %lu/%lu/%lu, diff: %2.3f, %s %s",p->solved_count, p->accepted_count, p->accepted_count + p->rejected_count,sharediff, s, flag);
+	applog(LOG_NOTICE, "%s [S/A/T]: %lu/%lu/%lu, diff: %2.3f, %s", flag, p->solved_count, p->accepted_count, p->accepted_count + p->rejected_count, sharediff, s);
 	if (reason) {
-		applog(LOG_WARNING, "reject reason: %s", reason);
+		applog(LOG_WARNING, "Reject reason: %s", reason);
 		if (!check_dups && strncasecmp(reason, "duplicate", 9) == 0) {
-			applog(LOG_WARNING, "enabling duplicates check feature");
+			applog(LOG_WARNING, "Enabling duplicates check feature");
 			check_dups = true;
 			g_work_time = 0;
 		}
@@ -1474,9 +1474,6 @@ static bool stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 		case ALGO_NEOSCRYPT:
 			work_set_target(work, sctx->job.diff / (65536.0 * opt_difficulty));
 			break;
-			case ALGO_KECCAKC:
-			work_set_target(work, sctx->job.diff / (256.0 * opt_difficulty));
-			break;
 		case ALGO_KECCAK:
 		case ALGO_LBRY:
 		case ALGO_LYRA2v2:
@@ -1932,7 +1929,8 @@ static void *miner_thread(void *userdata)
 					minmax = 0x8000000;
 					break;
 				case ALGO_NEOSCRYPT:
-				case ALGO_POLY:
+				case ALGO_SIB:
+				case ALGO_PHI:
 				case ALGO_VELTOR:
 				case ALGO_LYRA2:
 					minmax = 0x80000;
@@ -2013,9 +2011,6 @@ static void *miner_thread(void *userdata)
 			case ALGO_KECCAK:
 				rc = scanhash_keccak256(thr_id, &work, max_nonce, &hashes_done);
 				break;
-				case ALGO_KECCAKC:
-				rc = scanhash_keccak256(thr_id, &work, max_nonce, &hashes_done);
-				break;
 			case ALGO_BLAKE:
 				rc = scanhash_blake256_14round(thr_id, &work, max_nonce, &hashes_done);
 				break;
@@ -2070,8 +2065,11 @@ static void *miner_thread(void *userdata)
 			case ALGO_HSR:
 				rc = scanhash_hsr(thr_id, &work, max_nonce, &hashes_done);
 				break;
-			case ALGO_POLY:
-				rc = scanhash_poly(thr_id, &work, max_nonce, &hashes_done);
+			case ALGO_SIB:
+				rc = scanhash_sib(thr_id, &work, max_nonce, &hashes_done);
+				break;
+			case ALGO_PHI:
+				rc = scanhash_phi(thr_id, &work, max_nonce, &hashes_done);
 				break;
 			case ALGO_VELTOR:
 				rc = scanhash_veltor(thr_id, &work, max_nonce, &hashes_done);
@@ -3429,6 +3427,7 @@ int main(int argc, char *argv[])
 	// get opt_quiet early
 	parse_single_opt('q', argc, argv);
 
+	
 	char comment_toolkit[30];
 	if(((int)(CUDART_VERSION/1000)==7) && ((int)((CUDART_VERSION % 1000)/10)==5))
 		strcpy(comment_toolkit, "Recommended");
