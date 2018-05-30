@@ -3433,7 +3433,7 @@ int main(int argc, char *argv[])
 	if(((int)(CUDART_VERSION/1000)==7) && ((int)((CUDART_VERSION % 1000)/10)==5))
 		strcpy(comment_toolkit, "Recommended");
 	else
-		strcpy(comment_toolkit, "Not recommended prefer 7.5");
+		strcpy(comment_toolkit, "Recommended");
 		
 	printf("*** " PROGRAM_NAME " " PACKAGE_VERSION " for nVidia GPUs from alexis78@github ***\n");
 	printf("*** " PROGRAM_NAME " " PACKAGE_VERSION " compiled by nemosminer@github ***\n");
