@@ -53,7 +53,7 @@ BOOL WINAPI ConsoleHandler(DWORD);
 #endif
 
 #define PROGRAM_NAME		"ccminer"
-#define LP_SCANTIME		60
+#define LP_SCANTIME		10
 #define HEAVYCOIN_BLKHDR_SZ		84
 #define MNR_BLKHDR_SZ 80
 
@@ -199,7 +199,7 @@ double opt_resume_temp = 0.;
 double opt_resume_diff = 0.;
 double opt_resume_rate = -1.;
 
-int opt_statsavg = 30;
+int opt_statsavg = 10;
 
 // strdup on char* to allow a common free() if used
 static char* opt_syslog_pfx = strdup(PROGRAM_NAME);
