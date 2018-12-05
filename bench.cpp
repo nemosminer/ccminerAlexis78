@@ -65,6 +65,7 @@ void algo_free_all(int thr_id){
 	free_x14(thr_id);
 	free_x15(thr_id);
 	free_x17(thr_id);
+	free_x21s(thr_id);
 	free_lbry(thr_id);
 	free_neoscrypt(thr_id);
 	free_myriad(thr_id);
