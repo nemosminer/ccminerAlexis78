@@ -45,6 +45,7 @@ MaruCoin and other X13 coins
 BernCoin (X14)
 JoinCoin (X15)
 VergeCoin(X17)
+Ritocoin(X21s)
 Library Credits (LBRY)
 Neoscrypt (FeatherCoin)
 SiaCoin (blake2b)
