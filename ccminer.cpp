@@ -1950,7 +1950,7 @@ static void *miner_thread(void *userdata)
 				case ALGO_X14:
 				case ALGO_X15:
 				case ALGO_X17:
-				case ALGO_X21s:
+				case ALGO_X21S:
 					minmax = 0x300000;
 					break;
 					
