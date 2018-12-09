@@ -236,7 +236,6 @@ Options:\n\
 			x14         X14              (BernCoin)\n\
 			x15         X15              (Joincoin)\n\
 			x17         X17              (XVG)\n\
-			x21s        X21S             (Ritocoin)\n\
 			whirlpool   whirlpool        (JoinCoin)\n\
                         lbry        Lbry             (Library Credits)\n\
                         neoscrypt   Neoscrypt        (FTC/PXC/UFO)\n\
@@ -1481,7 +1480,6 @@ static bool stratum_gen_work(struct stratum_ctx *sctx, struct work *work)
 		case ALGO_KECCAK:
 		case ALGO_LBRY:
 		case ALGO_LYRA2v2:
-		case ALGO_X21S:
 			work_set_target(work, sctx->job.diff / (256.0 * opt_difficulty));
 			break;
 		case ALGO_LYRA2:
@@ -1950,7 +1948,6 @@ static void *miner_thread(void *userdata)
 				case ALGO_X14:
 				case ALGO_X15:
 				case ALGO_X17:
-				case ALGO_X21s:
 					minmax = 0x300000;
 					break;
 					
@@ -2091,9 +2088,6 @@ static void *miner_thread(void *userdata)
 			case ALGO_X17:
 				rc = scanhash_x17(thr_id, &work, max_nonce, &hashes_done);
 				break;
-			case ALGO_X21S:
-			        rc = scanhash_x21s(thr_id, &work, max_nonce, &hashes_done);
-			        break;
 			case ALGO_LBRY:
 				rc = scanhash_lbry(thr_id, &work, max_nonce, &hashes_done);
 				break;
@@ -3453,7 +3447,7 @@ int main(int argc, char *argv[])
 		printf("*** Based on tpruvot@github ccminer\n");
 		printf("*** Originally based on Christian Buchner and Christian H. project\n");
 		printf("*** Include some of the work of djm34, sp, tsiv and klausT.\n");
-		printf("			Alexis78-v1.5-cuda10 RTX Support \n\n");
+		printf("			Alexis78-v1.4-cuda10 RTX Support \n\n");
 	}
 
 	rpc_user = strdup("");
